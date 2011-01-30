@@ -32,8 +32,10 @@
 (function ($) {
 	//Add this to the global jQuery object as we want to apply this once to the entire document
 	$.scoped = function() {
-		var backupStyles = backupBlocks();
-
+		
+		//Backup the original styles
+		backupBlocks();
+		
 		//Go through once to add dependencies
 		$('style').each(function(index) {
 	    	if( isScoped($(this)) ) {
@@ -99,13 +101,11 @@
 		//Save all style tag contents to a temporary array.
 		//It might be better to move the contents to a data attr
 		function backupBlocks() {
-			var backup = []
 			$('style').each(function(i) {
 				if( isScoped($(this)) ) {
-					backup[i] = $(this).html();
+					$(this).data('original-style', $(this).html());
 				}
 			});
-			return backup;
 		}
 		//Each style block now has class="depends_on_1 depends_on_2"
 		//We switch off all the scoped style blocks not mentioned in that list
@@ -123,7 +123,7 @@
 		function fillBlocks() {
 			$('style').each(function(i) {
 				if( isScoped($(this)) ) {
-					$(this).html(backupStyles[i]);
+					$(this).html($(this).data('original-style'));
 				}
 			});
 		}
