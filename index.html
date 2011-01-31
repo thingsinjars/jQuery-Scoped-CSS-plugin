@@ -1,52 +1,58 @@
 <!DOCTYPE html>
 <html>
-<head>
-  <meta charset="utf-8" />
-  <title>jQuery Scoped CSS</title>
-  <style type="text/css">
-	body {
-		margin:0 auto;
-		background:#646362;
-		text-align:center;
-		width:75%;
-		font-family:helvetica,arial,sans-serif;
-	}
-	p {
-		border-radius:5px;
-	}
-  p {padding:1em;margin:1em;}
-  </style>
-
+  <head>
+    <meta charset="utf-8" />
+    <title>jQuery Scoped CSS</title>
+    <!--[if lt IE 9]>
+    <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <!-- Unscoped block -->
+    <style type="text/css">
+      body {
+        margin:0 auto;
+        background:#646362;
+        text-align:center;
+        width:75%;
+        font-family:helvetica,arial,sans-serif;
+      }
+      p {
+        padding:1em;
+        margin:1em;
+        border-radius:5px;
+      }
+    </style>
   </head>
   <body>
-		<!-- Unscoped block -->
+    <!-- Unscoped block -->
     <style type="text/css">
       p {background:#22ab22;color:white;}
       a {outline:1px solid yellow;color:white;}
-				p.bordered {border:3px solid white;}
+      p.bordered {border:3px solid white;}
     </style>
     <p><button onclick="$.scoped();">Enable scoping</button></p>
     <p>ForestGreen background, white text</p>
-		<p class="bordered">White border. <a href="#nowhere">Yellow outline</a>.</p>
+    <p class="bordered">White border. <a href="#nowhere">Yellow outline</a>.</p>
     <section>
+      <!-- Scoped block -->
       <style type="text/css" scoped="scoped">
         p {background:#ffdead;color:black;}
         a {outline:1px solid black; color:black;}
-				p.bordered {border:3px solid black;}
+        p.bordered {border:3px solid black;}
       </style>
       <p>NavajoWhite background, black text</p>
-			<p class="bordered">Black border. <a href="#nowhere">This should have a black outline</a>.</p>
+      <p class="bordered">Black border. <a href="#nowhere">This should have a black outline</a>.</p>
     </section>
     <section>
+      <!-- Scoped block -->
       <style type="text/css" scoped="true">
-  		  @import url('external.css');
+        @import url('external.css');
         p {background:#ff4500;color:white;}
         a {outline:1px solid white;}
       </style>
       <p>OrangeRed background, white text</p>
-			<p class="bordered">No border. <a href="#nowhere">White outline</a>. External @import.</p>
+      <p class="bordered">No border. <a href="#nowhere">White outline</a>. External @import.</p>
     </section>
-		<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.4.2/jquery.js"></script>
-		<script src="jquery.scoped.js"></script>
+    <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.4/jquery.js"></script>
+    <script src="jquery.scoped.js"></script>
   </body>
 </html>
