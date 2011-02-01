@@ -4,7 +4,7 @@
  *  to a specific area of the HTML. You can also use @import and media filters in scoped blocks
  *  http://www.w3.org/TR/html5/semantics.html#the-style-element
  *
- *  Simon Madine, 30 January 2011
+ *  Simon Madine, 1 February 2011
  *
  *  Use:
  *  Include this plugin file (minified, ideally) and call $.scoped() on load
@@ -82,7 +82,9 @@
               }
             } else if($.browser.opera) {
               for(var n in this_style) {
-                this.style.setProperty(n, this_style[n]);
+                if(n != 'content' || this_style[n] != 'none') {
+                  this.style.setProperty(n, this_style[n]);
+                }
               }
             } else {
               $(this).css('cssText',this_style);
@@ -99,11 +101,11 @@
     //This will stop them affecting out-of-scope elements
     $('style').each(function(index) {
       if( isScoped($(this)) ) {
-				if($.browser.msie) {
-        	$(this).attr('disabled', 'disabled');
-				} else {
-	        $(this).html('');
-				}
+        if($.browser.msie) {
+          $(this).attr('disabled', 'disabled');
+        } else {
+          $(this).html('');
+        }
       }
     });
 
@@ -124,7 +126,7 @@
 
     //Each style block now has class="depends_on_1 depends_on_2"
     //We switch off all the scoped style blocks not mentioned in that list
-    //The disabled attribute only works on IE but coincidentally, 
+    //The disabled attribute only works on IE but coincidentally,
     //IE doesn't allow .html() on style blocks.
     function emptyBlocks(currentBlock) {
       $('style').each(function(i) {
@@ -155,9 +157,12 @@
 
     //Update this bit with some jQuery magic later
     function getStylesText(element) {
-      if($.browser.msie || $.browser.opera) {
+      if($.browser.msie) {
         //We actually work with a style object in IE rather than the text
         return element.currentStyle;
+      } else if($.browser.opera) {
+        sleep(50); //Opera takes a short time (~20ms) to resolve styles included via @import
+        return document.defaultView.getComputedStyle(element, null);
       } else if($.browser.mozilla) {
         //We extract and process the ComputedCSSStyleObject into text
         var temp = document.defaultView.getComputedStyle(element, null);
@@ -182,8 +187,11 @@
        return chr ? chr.toUpperCase() : '';
      });
     }
-    function uncamelize(string) {
-			return string.replace(/[A-Z]/g, '-$&').toLowerCase();
+    function sleep(ms){
+        var dt = new Date();
+        dt.setTime(dt.getTime() + ms);
+        while (new Date().getTime() < dt.getTime()) {};
     }
+
   }
 })(jQuery);
