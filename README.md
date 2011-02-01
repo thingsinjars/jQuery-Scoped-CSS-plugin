@@ -2,7 +2,7 @@ jQuery Scoped CSS plugin
 ========================
 This adds support for the CSS scoped attribute to limit a block of style declarations
 to a specific area of the HTML. You can also use @import and media filters in scoped blocks
-(http://www.w3.org/TR/html5/semantics.html#the-style-element)[Check out the spec]
+[Check out the spec](http://www.w3.org/TR/html5/semantics.html#the-style-element)
 
 Use
 ---
@@ -12,7 +12,7 @@ Limitations
 -----------
  * If you're using multiple nested declarations, Webkit might apply different inheritance specificity rules from the other engines. I don't know who's right.
  * Opera seems to add an extra display:none on text nodes.
- * Remember, IE < 9 support requires a (http://code.google.com/p/html5shim)[helping hand] if you're using HTML 5 elements
+ * Remember, IE < 9 support requires a [helping hand](http://code.google.com/p/html5shim) if you're using HTML 5 elements
 
 Notes
 -----
