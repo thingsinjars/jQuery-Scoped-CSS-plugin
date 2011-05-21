@@ -1,12 +1,24 @@
 jQuery Scoped CSS plugin
 ========================
-This adds support for the CSS scoped attribute to limit a block of style declarations to a specific area of the HTML. You can also use @import and media filters in scoped blocks.
+This adds support for the scoped attribute to limit a block of style declarations to a specific area of the HTML. You can also use @import and media filters in scoped blocks.
 
-[Check out the spec on the W3C site](http://www.w3.org/TR/html5/semantics.html#the-style-element)
+ * [Check out the spec on the W3C site](http://www.w3.org/TR/html5/semantics.html#the-style-element)
+ * [Read more about the plugin](http://thingsinjars.com/post/359/css-scoped/)
 
 Use
 ---
 Include this plugin file (minified, ideally) and call $.scoped() on load
+
+Any style blocks with the scoped attribute are processed and limited to only affect their parent's children:
+
+    <p>This will be black.</p>
+    <section>
+     <style scoped>
+       p {color:red;}
+     </style> 
+     <p>This will be red.</p>
+    </section>
+
 
 Limitations
 -----------
