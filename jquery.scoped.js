@@ -63,7 +63,7 @@
         var holdingArea = [];
 
         //Read all styles and copy them to a holding area
-        $this.parent().find('*').each(function() {
+        $this.parent().find('*').add($this.parent()).each(function() {
           var this_tag = this.nodeName;
           $(this).css('cssText','');
           if(this.nodeName != 'STYLE') {
@@ -72,7 +72,7 @@
         });
 
         //Copy all the styles back from the holding area onto the in-scope elements
-        $this.parent().find('*').each(function() {
+        $this.parent().find('*').add($this.parent()).each(function() {
           var this_tag = this.nodeName;
           if(this.nodeName != 'STYLE') {
             var this_style = holdingArea.shift();
