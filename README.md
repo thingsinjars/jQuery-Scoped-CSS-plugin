@@ -4,6 +4,7 @@ This adds support for the scoped attribute to limit a block of style declaration
 
  * [Check out the spec on the W3C site](http://www.w3.org/TR/html5/semantics.html#the-style-element)
  * [Read more about the plugin](http://thingsinjars.com/post/359/css-scoped/)
+ * [Demo of the plugin in action](http://thelab.thingsinjars.com/scoped/index-js.html)
 
 Use
 ---
