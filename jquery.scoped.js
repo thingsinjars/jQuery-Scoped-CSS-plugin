@@ -12,13 +12,18 @@
  *  Limitations:
  *  - If you're using multiple nested declarations, Webkit might apply different inheritance
  *    specificity rules from the other engines. I don't know who's right.
+ *  - Sometimes there are delays parsing externally loaded stylesheets (via @import) and they
+ *    might get skipped. Not often but it happens.
  *
  *  Notes:
+ *  - If the browser natively supports <style scoped>, this will return without doing anything
  *  - Style elements really shouldn't have classes added to them. This functionality should
  *    probably use some kind of data attribute.
- *  - The scoped blocks are emptied out in non-IE because there is also no support for the disabled
- *    attribute. This plugin could probably enable that attribute as well at no extra cost.
  *  - Currently, getElementStyles is hand-rolled and probably wrong.
+ *
+ *  v0.6 2013-04-08
+ *  Removed $.browser requirement and refactored a bit so it runs slightly faster and works with
+ *  jQuery 1.9. Also checks for native scoped style support and exits early if available.
  *
  *  v0.5 2011-01-30
  *  Sibling blocks work, most nested blocks work but some oddness in Webkit means that some
@@ -29,97 +34,131 @@
  *  multiple scoped blocks affecting the same context (siblings).
  *
  */
-(function ($) {
+(function($) {
+  "use strict";
   //Add this to the global jQuery object as we want to apply this once to the entire document
   $.scoped = function() {
+    if ('scoped' in document.createElement('style')) {
+      return;
+    }
 
-    //Backup the original styles
-    backupBlocks();
+    // To detect which method to use when setting styles
+    // IE9 pretends to use setProperty but doesn't
+    var styleSettable = true;
+    try {
+     document.createElement("div").style.setProperty("opacity", 0, "");
+    } catch (error) {
+      styleSettable = false;
+    }
 
-    //Go through once to add dependencies
-    $('style').each(function(index) {
-        if( isScoped($(this)) ) {
-          $this = $(this);
-          $this.addClass('this_is_'+index);
+    if (!$('body').hasClass('scope-styled')) {
+      $('body').addClass('scope-styled');
+
+      //Backup the original styles
+      backupBlocks();
+
+      //Go through once to add dependencies
+      var $style = $('style');
+      $style.each(function(index) {
+        var $this = $(this);
+        if (isScoped($this)) {
+          $this.addClass('this_is_' + index);
 
           //Get all style blocks in this scope
           //Including nested blocks
-          $this.parent().find('style').each(function(i) {
+          $this.parent().find('style').each(function() {
             //Add a dependency class here to check for later
-            $(this).addClass('depends_on_'+index);
+            $(this).addClass('depends_on_' + index);
           });
-      }
-    });
+        }
+      });
 
-    //Go through a second time to process the scopes
-    $('style').each(function(index) {
-      $this = $(this);
-        if( isScoped($this) ) {
+      //Go through a second time to process the scopes
+      $style.each(function() {
+        var $this = $(this);
+        if (isScoped($this)) {
 
-        //Empty all scoped style blocks
-        //Except those that this context is dependant on
-        emptyBlocks($this);
+          //Empty all scoped style blocks
+          //Except those that this context is dependant on
+          emptyBlocks($this);
 
-        var holdingArea = [];
+          var holdingArea = [];
 
-        //Read all styles and copy them to a holding area
-        $this.parent().find('*').add($this.parent()).each(function() {
-          var this_tag = this.nodeName;
-          $(this).css('cssText','');
-          if(this.nodeName != 'STYLE') {
-            holdingArea.push(getStylesText(this));
-          }
-        });
+          //Read all styles and copy them to a holding area
+          var $parent = $this.parent(),
+            $all = $parent.find('*');
+          $all.add($parent).each(function() {
+            $(this).css('cssText', '');
+            if (this.nodeName !== 'STYLE') {
+              holdingArea.push(getStylesText(this));
+            }
+          });
 
-        //Copy all the styles back from the holding area onto the in-scope elements
-        $this.parent().find('*').add($this.parent()).each(function() {
-          var this_tag = this.nodeName;
-          if(this.nodeName != 'STYLE') {
-            var this_style = holdingArea.shift();
-            if($.browser.msie) {
-              for(var n in this_style) {
-                this.style[n]=this_style[n];
-              }
-            } else if($.browser.opera) {
-              for(var n in this_style) {
-                if(n != 'content' || this_style[n] != 'none') {
-                  this.style.setProperty(n, this_style[n]);
+          //Copy all the styles back from the holding area onto the in-scope elements
+          $all.add($parent).each(function() {
+            var this_style, n;
+            if (this.nodeName !== 'STYLE') {
+              this_style = holdingArea.shift();
+
+              if (typeof this_style === 'string') {
+                // Webkit, Gecko
+                $(this).css('cssText', this_style);
+              } else {
+                if (styleSettable) {
+                  // Opera
+                  for (n in this_style) {
+                    if (n !== 'content' || this_style[n] !== 'none') {
+                      try {
+                        this.style.setProperty(n, this_style[n]);
+                      } catch (err) {}
+                    }
+                  }
+                } else {
+                  // IE
+                  for (n in this_style) {
+                    try {
+                      if (this && this.style && n && this_style[n] && n !== '' && this_style[n] !== '') {
+                        this.style[n] = this_style[n];
+                      }
+                    } catch (err) {}
+                  }
                 }
               }
-            } else {
-              $(this).css('cssText',this_style);
             }
-          }
-        });
+          });
 
-            //Put all other style blocks back
-            fillBlocks();
-      }
-    });
-
-    //Measurements done and styles applied, now clear styles from this style block
-    //This will stop them affecting out-of-scope elements
-    $('style').each(function(index) {
-      if( isScoped($(this)) ) {
-        if($.browser.msie) {
-          $(this).attr('disabled', 'disabled');
-        } else {
-          $(this).html('');
+          //Put all other style blocks back
+          fillBlocks();
         }
-      }
-    });
+      });
+
+      //Measurements done and styles applied, now clear styles from this style block
+      //This will stop them affecting out-of-scope elements
+      $('style').each(function(i, e) {
+        if (isScoped(e)) {
+          try {
+            e.innerHTML = '';
+          } catch (error) {
+            $(e).attr('disabled', 'disabled');
+          }
+        }
+      });
+    }
 
     //Standard jQuery attribute selector $('style[scoped]') doesn't
     //work with empty boolean attributes so this is used instead
+
     function isScoped(styleBlock) {
-      return ( $(styleBlock).attr('scoped') != undefined );
+      return ($(styleBlock).attr('scoped') !== undefined);
     }
 
     //Save all style tag contents to a data object
+
     function backupBlocks() {
-      $('style').each(function(i) {
-        if( isScoped($(this)) ) {
-          $(this).data('original-style', $(this).html());
+      $('style').each(function(i, e) {
+        if (isScoped(e)) {
+          var $e = $(e);
+          $e.data('original-style', $e.html());
         }
       });
     }
@@ -128,14 +167,15 @@
     //We switch off all the scoped style blocks not mentioned in that list
     //The disabled attribute only works on IE but coincidentally,
     //IE doesn't allow .html() on style blocks.
+
     function emptyBlocks(currentBlock) {
-      $('style').each(function(i) {
-        if( isScoped($(this)) ) {
-          if(!currentBlock.hasClass('depends_on_'+i)) {
-            if($.browser.msie) {
-              $('style').eq(i).attr('disabled', 'disabled');
-            } else {
-              $('style').eq(i).html('');
+      $('style').each(function(i, e) {
+        if (isScoped(e)) {
+          if (!currentBlock.hasClass('depends_on_' + i)) {
+            try {
+              e.innerHTML = '';
+            } catch (error) {
+              $(e).attr('disabled', 'disabled');
             }
           }
         }
@@ -143,55 +183,60 @@
     }
 
     //Put all the styles back to reset for the next loop
+
     function fillBlocks() {
-      $('style').each(function(i) {
-        if( isScoped($(this)) ) {
-          if($.browser.msie) {
+      $('style').each(function(i, e) {
+        var $e = $(e);
+        if (isScoped(e)) {
+          try {
+            e.innerHTML = $e.data('original-style');
+          } catch (error) {
             $(this).removeAttr('disabled');
-          } else {
-            $(this).html($(this).data('original-style'));
           }
         }
       });
     }
 
     //Update this bit with some jQuery magic later
+
     function getStylesText(element) {
-      if($.browser.msie) {
-        //We actually work with a style object in IE rather than the text
+      var temp, styles, n, key;
+
+      if (element.currentStyle) {
+        //We work with a style object in IE and Opera rather than the text
+        sleep(50); //50ms delay to allow for external stylesheet parsing.
         return element.currentStyle;
-      } else if($.browser.opera) {
-        sleep(50); //Opera takes a short time (~20ms) to resolve styles included via @import
-        return document.defaultView.getComputedStyle(element, null);
-      } else if($.browser.mozilla) {
-        //We extract and process the ComputedCSSStyleObject into text
-        var temp = document.defaultView.getComputedStyle(element, null);
-        var styles = '';
-        for(var n in temp) {
-          if(parseInt(n,10)) {
-            var key = camelize(temp[n]);
-            if(temp[key] != undefined) {
-              styles += temp[n]+':'+temp[key]+';\n';
-            }
+      }
+
+      //We extract and process the ComputedCSSStyleObject into text
+      temp = document.defaultView.getComputedStyle(element, null);
+      styles = '';
+      for (n in temp) {
+        if (parseInt(n, 10)) {
+          key = camelize(temp[n]);
+          if (temp[key] !== undefined) {
+            styles += temp[n] + ':' + temp[key] + ';\n';
           }
         }
-        return styles;
-      } else {
-        //Webkit implements cssText on ComputedCSSStyleObjects so we can use it here
-        return document.defaultView.getComputedStyle(element, null).cssText;
       }
-    }
-    //from Prototype
-    function camelize(string) {
-     return string.replace(/-+(.)?/g, function(match, chr) {
-       return chr ? chr.toUpperCase() : '';
-     });
-    }
-    function sleep(ms){
-        var dt = new Date();
-        dt.setTime(dt.getTime() + ms);
-        while (new Date().getTime() < dt.getTime()) {};
+      return styles;
     }
 
-  }
+    //from Prototype
+
+    function camelize(string) {
+      return string.replace(/-+(.)?/g, function(match, chr) {
+        return chr ? chr.toUpperCase() : '';
+      });
+    }
+
+    function sleep(ms) {
+      var dt = new Date();
+      dt.setTime(dt.getTime() + ms);
+      while (new Date().getTime() < dt.getTime()) {
+        $.noop();
+      }
+    }
+
+  };
 })(jQuery);
