@@ -8,7 +8,7 @@ This adds support for the scoped attribute to limit a block of style declaration
 
 Use
 ---
-Include this plugin file (minified, ideally) and call $.scoped() on load
+Include this plugin file (minified, ideally) and call $.scoped() on load. If you add style blocks to the page later, you need to rerun the plugin.
 
 Any style blocks with the scoped attribute are processed and limited to only affect their parent's children:
 
@@ -24,7 +24,6 @@ Any style blocks with the scoped attribute are processed and limited to only aff
 Limitations
 -----------
 
-  * Can have unexpected behaviour when run multiple times so it can now only be run once per page load.
   * If you're using multiple nested declarations, Webkit might apply different inheritance specificity rules from the other engines. I don't know who's right.
   * Remember, IE < 9 support requires a [helping hand](http://code.google.com/p/html5shim) if you're using HTML 5 elements
   * Currently, getElementStyles is hand-rolled and possibly wrong.
