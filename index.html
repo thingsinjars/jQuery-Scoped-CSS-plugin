@@ -52,7 +52,15 @@
       <p>OrangeRed background, white text</p>
       <p class="bordered">No border. <a href="#nowhere">White outline</a>. External @import.</p>
     </section>
+    <section>
+      <p id="addLive">Click to dynamically add scoped style block. Rerun to update the page.</p> 
+    </section>
     <script src="http://code.jquery.com/jquery-1.9.1.js"></script>
     <script src="jquery.scoped.js"></script>
+    <script>
+    $('#addLive').on('click', function() {
+      $(this).after('<style type="text/css" scoped="true"> p {background:darkblue;font-weight:bold;} </style>');
+    });
+    </script>
   </body>
 </html>
