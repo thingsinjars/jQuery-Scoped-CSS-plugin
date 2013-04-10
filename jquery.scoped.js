@@ -46,104 +46,108 @@
     // IE9 pretends to use setProperty but doesn't
     var styleSettable = true;
     try {
-     document.createElement("div").style.setProperty("opacity", 0, "");
+      document.createElement("div").style.setProperty("opacity", 0, "");
     } catch (error) {
       styleSettable = false;
     }
 
-    if (!$('body').hasClass('scope-styled')) {
-      $('body').addClass('scope-styled');
+    scopedReset();
 
-      //Backup the original styles
-      backupBlocks();
+    //Backup the original styles
+    backupBlocks();
 
-      //Go through once to add dependencies
-      var $style = $('style');
-      $style.each(function(index) {
-        var $this = $(this);
-        if (isScoped($this)) {
-          $this.addClass('this_is_' + index);
+    //Go through once to add dependencies
+    var $style = $('style');
+    $style.each(function(index) {
+      var $this = $(this);
+      if (isScoped($this)) {
+        $this.addClass('this_is_' + index);
 
-          //Get all style blocks in this scope
-          //Including nested blocks
-          $this.parent().find('style').each(function() {
-            //Add a dependency class here to check for later
-            $(this).addClass('depends_on_' + index);
-          });
-        }
-      });
+        //Get all style blocks in this scope
+        //Including nested blocks
+        $this.parent().find('style').each(function() {
+          //Add a dependency class here to check for later
+          $(this).addClass('depends_on_' + index);
+        });
+      }
+    });
 
-      //Go through a second time to process the scopes
-      $style.each(function() {
-        var $this = $(this);
-        if (isScoped($this)) {
+    //Go through a second time to process the scopes
+    $style.each(function() {
+      var $this = $(this);
+      if (isScoped($this)) {
 
-          //Empty all scoped style blocks
-          //Except those that this context is dependant on
-          emptyBlocks($this);
+        //Empty all scoped style blocks
+        //Except those that this context is dependant on
+        emptyBlocks($this);
 
-          var holdingArea = [];
+        var holdingArea = [];
 
-          //Read all styles and copy them to a holding area
-          var $parent = $this.parent(),
-            $all = $parent.find('*');
-          $all.add($parent).each(function() {
-            $(this).css('cssText', '');
-            if (this.nodeName !== 'STYLE') {
-              holdingArea.push(getStylesText(this));
+        //Read all styles and copy them to a holding area
+        var $parent = $this.parent(),
+          $all = $parent.find('*');
+        $all.add($parent).each(function() {
+          $(this).css('cssText', '');
+          if (this.nodeName !== 'STYLE') {
+            holdingArea.push(getStylesText(this));
+          }
+        });
+
+        //Copy all the styles back from the holding area onto the in-scope elements
+        $all.add($parent).each(function() {
+          var this_style, n;
+          if (this.nodeName !== 'STYLE') {
+
+            if (!$(this).data('originalInline')) {
+              $(this).data('originalInline', $(this).attr('style'));
             }
-          });
 
-          //Copy all the styles back from the holding area onto the in-scope elements
-          $all.add($parent).each(function() {
-            var this_style, n;
-            if (this.nodeName !== 'STYLE') {
-              this_style = holdingArea.shift();
 
-              if (typeof this_style === 'string') {
-                // Webkit, Gecko
-                $(this).css('cssText', this_style);
-              } else {
-                if (styleSettable) {
-                  // Opera
-                  for (n in this_style) {
-                    if (n !== 'content' || this_style[n] !== 'none') {
-                      try {
-                        this.style.setProperty(n, this_style[n]);
-                      } catch (err) {}
-                    }
-                  }
-                } else {
-                  // IE
-                  for (n in this_style) {
+            this_style = holdingArea.shift();
+
+            if (typeof this_style === 'string') {
+              // Webkit, Gecko
+              $(this).css('cssText', this_style);
+            } else {
+              if (styleSettable) {
+                // Opera
+                for (n in this_style) {
+                  if (n !== 'content' || this_style[n] !== 'none') {
                     try {
-                      if (this && this.style && n && this_style[n] && n !== '' && this_style[n] !== '') {
-                        this.style[n] = this_style[n];
-                      }
+                      this.style.setProperty(n, this_style[n]);
                     } catch (err) {}
                   }
                 }
+              } else {
+                // IE
+                for (n in this_style) {
+                  try {
+                    if (this && this.style && n && this_style[n] && n !== '' && this_style[n] !== '') {
+                      this.style[n] = this_style[n];
+                    }
+                  } catch (err) {}
+                }
               }
             }
-          });
-
-          //Put all other style blocks back
-          fillBlocks();
-        }
-      });
-
-      //Measurements done and styles applied, now clear styles from this style block
-      //This will stop them affecting out-of-scope elements
-      $('style').each(function(i, e) {
-        if (isScoped(e)) {
-          try {
-            e.innerHTML = '';
-          } catch (error) {
-            $(e).attr('disabled', 'disabled');
           }
+        });
+
+        //Put all other style blocks back
+        fillBlocks();
+      }
+    });
+
+    //Measurements done and styles applied, now clear styles from this style block
+    //This will stop them affecting out-of-scope elements
+    $('style').each(function(i, e) {
+      if (isScoped(e)) {
+        try {
+          e.innerHTML = '';
+        } catch (error) {
+          $(e).attr('disabled', 'disabled');
         }
-      });
-    }
+      }
+    });
 
     //Standard jQuery attribute selector $('style[scoped]') doesn't
     //work with empty boolean attributes so this is used instead
@@ -220,6 +224,38 @@
         }
       }
       return styles;
+    }
+
+    function scopedReset() {
+      var $style = $('style');
+      $style.each(function(i, styleBlock) {
+        var $styleBlock = $(styleBlock);
+        var $parent = $(this).parent(),
+          $all = $parent.find('*');
+
+        $all.add($parent).each(function() {
+          var $this = $(this);
+          if (this.nodeName !== 'STYLE') {
+            if ($this.data('scopedprocessed')) {
+              $this.attr('style', $this.data('originalInline') || '');
+              $this.data('scopedprocessed', true);
+            }
+          }
+        });
+
+        if (($styleBlock.attr('scoped') !== undefined)) {
+          try {
+            if ($styleBlock.data('scopedprocessed')) {
+              this.innerHTML = $styleBlock.data('original-style');
+            }
+          } catch (error) {
+            $styleBlock.removeAttr('disabled');
+          }
+          $styleBlock.data('scopedprocessed', true);
+        }
+
+
+      });
     }
 
     //from Prototype
