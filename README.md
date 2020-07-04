@@ -1,3 +1,8 @@
+# DEPRECATED
+
+*This project is no longer maintained. If there's anything useful here, feel free to take it.*
+
+
 jQuery Scoped CSS plugin
 ========================
 This adds support for the scoped attribute to limit a block of style declarations to a specific area of the HTML. You can also use @import and media filters in scoped blocks.
